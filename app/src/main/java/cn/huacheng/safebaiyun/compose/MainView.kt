@@ -7,17 +7,25 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Button
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
@@ -31,12 +39,8 @@ import cn.huacheng.safebaiyun.unlock.UnlockRepo
 import cn.huacheng.safebaiyun.util.showToast
 
 /**
- *
- *@description:
- *@author: guangzhou
- *@create: 2024-05-10
+ * 主页：顶部为当前门禁切换器，中间为开门按钮，右上角进入门禁管理。
  */
-
 @Composable
 fun MainView(navController: NavHostController) {
 
@@ -46,8 +50,13 @@ fun MainView(navController: NavHostController) {
         mutableStateOf(false)
     }
 
-    val showEditDialog = remember {
+    val showManageSheet = remember {
         mutableStateOf(false)
+    }
+
+    // 数据变化计数器，变化后重新读取当前门禁
+    val refreshTick = remember {
+        mutableIntStateOf(0)
     }
 
     SideEffect {
@@ -61,7 +70,7 @@ fun MainView(navController: NavHostController) {
 
     Column {
         MainTopBar(onEditClick = {
-            showEditDialog.value = true
+            showManageSheet.value = true
         }, onHelperClick = {
             navController.navigate("helper")
         })
@@ -70,19 +79,82 @@ fun MainView(navController: NavHostController) {
                 .fillMaxSize()
                 .padding(8.dp), contentAlignment = Alignment.Center
         ) {
-            if (hasPermission.value) {
-                UnlockView()
-            } else {
-                PermissionView(hasPermission)
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                DoorSwitcher(
+                    tick = refreshTick.intValue,
+                    onChanged = { refreshTick.intValue++ },
+                    onManage = { showManageSheet.value = true }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                if (hasPermission.value) {
+                    UnlockView()
+                } else {
+                    PermissionView(hasPermission)
+                }
             }
         }
-        if (showEditDialog.value) {
-            EditDialog(state = showEditDialog) {
-                DataRepo.readData()
+        if (showManageSheet.value) {
+            DoorManageSheet(state = showManageSheet) {
+                refreshTick.intValue++
             }
         }
     }
 
+}
+
+/**
+ * 当前门禁下拉切换器：点击切换到其他已保存门禁，或进入门禁管理。
+ */
+@Composable
+private fun DoorSwitcher(tick: Int, onChanged: () -> Unit, onManage: () -> Unit) {
+    var expanded by remember { mutableStateOf(false) }
+
+    val profiles = remember(tick) { DataRepo.readProfiles() }
+    val selected = remember(tick) { DataRepo.selectedIndex() }
+    val current = profiles.getOrNull(selected)
+
+    Box {
+        TextButton(onClick = {
+            if (profiles.isEmpty()) {
+                onManage()
+            } else {
+                expanded = true
+            }
+        }) {
+            if (current == null) {
+                Text(text = "未配置门禁，点此添加")
+            } else {
+                val label = current.name.ifBlank { current.mac }
+                Text(text = "当前：$label  ▾")
+            }
+        }
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            profiles.forEachIndexed { index, item ->
+                DropdownMenuItem(
+                    text = { Text(text = item.name.ifBlank { item.mac }) },
+                    onClick = {
+                        DataRepo.select(index)
+                        expanded = false
+                        onChanged()
+                    },
+                    trailingIcon = {
+                        if (index == selected) Text(text = "✓")
+                    }
+                )
+            }
+            HorizontalDivider()
+            DropdownMenuItem(
+                text = { Text(text = "管理门禁…") },
+                onClick = {
+                    expanded = false
+                    onManage()
+                }
+            )
+        }
+    }
 }
 
 @Composable
@@ -113,4 +185,3 @@ private fun PermissionView(hasPermission: MutableState<Boolean>) {
 
     }
 }
-
