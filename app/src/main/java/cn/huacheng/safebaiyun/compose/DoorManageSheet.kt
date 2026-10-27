@@ -1,6 +1,5 @@
 package cn.huacheng.safebaiyun.compose
 
-import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -30,12 +29,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import android.content.Intent
 import cn.huacheng.safebaiyun.NfcWriteActivity
 import cn.huacheng.safebaiyun.unlock.DataRepo
 import cn.huacheng.safebaiyun.unlock.LockProfile
 
 /**
- * 门禁管理 BottomSheet：列出全部已保存门禁，支持切换、新增、编辑、删除、写NFC标签。
+ * 门禁管理 BottomSheet：列出全部已保存门禁，支持切换、新增、编辑、删除。
  *
  * @param state    控制 sheet 显示状态
  * @param onChanged 数据发生变化后的回调（用于刷新主页的当前门禁显示）
@@ -94,7 +94,7 @@ fun DoorManageSheet(state: MutableState<Boolean>, onChanged: () -> Unit) {
                                         fontWeight = FontWeight.Medium
                                     )
                                     Text(
-                                        text = item.mac,
+                                        text = item.mac.ifBlank { item.bluetoothName },
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -160,7 +160,7 @@ fun DoorManageSheet(state: MutableState<Boolean>, onChanged: () -> Unit) {
 }
 
 /**
- * 新增/编辑门禁的对话框：名称、MAC、Key 三个字段。
+ * 新增/编辑门禁的对话框：名称、蓝牙名、MAC、Key。
  */
 @Composable
 private fun ProfileEditDialog(
@@ -171,6 +171,7 @@ private fun ProfileEditDialog(
 ) {
     var name by remember { mutableStateOf(profile.name) }
     var mac by remember { mutableStateOf(profile.mac) }
+    var bluetoothName by remember { mutableStateOf(profile.bluetoothName) }
     var key by remember { mutableStateOf(profile.key) }
 
     AlertDialog(
@@ -186,9 +187,16 @@ private fun ProfileEditDialog(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 OutlinedTextField(
+                    value = bluetoothName,
+                    onValueChange = { bluetoothName = it },
+                    label = { Text(text = "蓝牙名（如 BY9F9970EFE）") },
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
                     value = mac,
                     onValueChange = { mac = it },
-                    label = { Text(text = "MAC 地址") },
+                    label = { Text(text = "MAC 地址（可留空）") },
                     modifier = Modifier.fillMaxWidth()
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -202,11 +210,12 @@ private fun ProfileEditDialog(
         },
         confirmButton = {
             TextButton(onClick = {
-                if (mac.isBlank() || key.isBlank()) return@TextButton
+                if (key.isBlank() || (mac.isBlank() && bluetoothName.isBlank())) return@TextButton
                 onConfirm(
                     LockProfile(
                         name = name.trim(),
                         mac = mac.trim(),
+                        bluetoothName = bluetoothName.trim(),
                         key = key.trim()
                     )
                 )
