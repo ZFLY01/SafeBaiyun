@@ -25,6 +25,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -36,6 +37,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -65,12 +67,12 @@ class WatchActivity : ComponentActivity() {
 @Composable
 private fun WatchScreen() {
     var tick by remember { mutableIntStateOf(0) }
-    var hasPermission by remember { mutableStateOf(checkBluetoothPermission()) }
+    var hasPermission by remember { mutableStateOf(hasAllBlePermissions()) }
     var showManage by remember { mutableStateOf(false) }
 
     val permissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
-    ) { granted -> hasPermission = granted }
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { hasPermission = hasAllBlePermissions() }
 
     val profiles = remember(tick) { DataRepo.readProfiles() }
     val selected = remember(tick) { DataRepo.selectedIndex() }
@@ -131,9 +133,7 @@ private fun WatchScreen() {
                         )
                         .clickable {
                             if (!hasPermission) {
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                                    permissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
-                                }
+                                permissionLauncher.launch(requiredBlePermissions())
                                 return@clickable
                             }
                             showToast("开始解锁")
@@ -173,11 +173,23 @@ private fun WatchScreen() {
     }
 }
 
-private fun checkBluetoothPermission(): Boolean {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return true
+private fun requiredBlePermissions(): Array<String> {
+    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        arrayOf(
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+    } else {
+        arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+    }
+}
+
+private fun hasAllBlePermissions(): Boolean {
     val app = cn.huacheng.safebaiyun.util.ContextHolder.get()
-    return app.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
-        PackageManager.PERMISSION_GRANTED
+    return requiredBlePermissions().all {
+        app.checkSelfPermission(it) == PackageManager.PERMISSION_GRANTED
+    }
 }
 
 /**
@@ -287,6 +299,7 @@ private fun WatchEditDialog(
 ) {
     var name by remember { mutableStateOf(profile.name) }
     var mac by remember { mutableStateOf(profile.mac) }
+    var bluetoothName by remember { mutableStateOf(profile.bluetoothName) }
     var key by remember { mutableStateOf(profile.key) }
 
     AlertDialog(
@@ -303,9 +316,17 @@ private fun WatchEditDialog(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 OutlinedTextField(
+                    value = bluetoothName,
+                    onValueChange = { bluetoothName = it },
+                    label = { Text(text = "蓝牙名（如 BY9F9970EFE）", fontSize = 11.sp) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                OutlinedTextField(
                     value = mac,
                     onValueChange = { mac = it },
-                    label = { Text(text = "MAC", fontSize = 11.sp) },
+                    label = { Text(text = "MAC（可留空）", fontSize = 11.sp) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -321,12 +342,14 @@ private fun WatchEditDialog(
         },
         confirmButton = {
             TextButton(
-                enabled = mac.isNotBlank() && key.isNotBlank(),
+                enabled = key.isNotBlank() &&
+                    (mac.isNotBlank() || bluetoothName.isNotBlank()),
                 onClick = {
                     onConfirm(
                         LockProfile(
                             name = name.trim(),
                             mac = mac.trim(),
+                            bluetoothName = bluetoothName.trim(),
                             key = key.trim()
                         )
                     )
