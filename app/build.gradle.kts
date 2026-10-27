@@ -12,8 +12,8 @@ android {
         applicationId = "cn.huacheng.safebaiyun"
         minSdk = 21
         targetSdk = 34
-        versionCode = 5
-        versionName = "1.4"
+        versionCode = 6
+        versionName = "1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -46,7 +46,7 @@ android {
     }
     packaging {
         resources {
-            excludes += "/META-INF/{AL20,LGPL2.1}"
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
 }
