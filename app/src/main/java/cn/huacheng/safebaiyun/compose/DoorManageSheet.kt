@@ -1,5 +1,6 @@
 package cn.huacheng.safebaiyun.compose
 
+import android.content.Intent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -26,13 +27,15 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import cn.huacheng.safebaiyun.NfcWriteActivity
 import cn.huacheng.safebaiyun.unlock.DataRepo
 import cn.huacheng.safebaiyun.unlock.LockProfile
 
 /**
- * 门禁管理 BottomSheet：列出全部已保存门禁，支持切换、新增、编辑、删除。
+ * 门禁管理 BottomSheet：列出全部已保存门禁，支持切换、新增、编辑、删除、写NFC标签。
  *
  * @param state    控制 sheet 显示状态
  * @param onChanged 数据发生变化后的回调（用于刷新主页的当前门禁显示）
@@ -40,6 +43,7 @@ import cn.huacheng.safebaiyun.unlock.LockProfile
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DoorManageSheet(state: MutableState<Boolean>, onChanged: () -> Unit) {
+    val context = LocalContext.current
     var profiles by remember { mutableStateOf(DataRepo.readProfiles()) }
 
     // editingIndex：-1 = 不显示编辑框；-2 = 新增；>=0 = 编辑对应下标
@@ -95,6 +99,15 @@ fun DoorManageSheet(state: MutableState<Boolean>, onChanged: () -> Unit) {
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+                                TextButton(onClick = {
+                                    val intent = Intent(context, NfcWriteActivity::class.java)
+                                    intent.putExtra(NfcWriteActivity.EXTRA_MAC, item.mac)
+                                    intent.putExtra(
+                                        NfcWriteActivity.EXTRA_NAME,
+                                        item.name.ifBlank { item.mac }
+                                    )
+                                    context.startActivity(intent)
+                                }) { Text("写NFC") }
                                 TextButton(onClick = {
                                     editingIndex = index
                                     editingProfile = item

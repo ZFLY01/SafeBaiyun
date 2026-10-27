@@ -76,6 +76,13 @@ object DataRepo {
     }
 
     /**
+     * 按 MAC 查找门禁下标；找不到返回 -1。
+     */
+    fun findIndexByMac(mac: String): Int {
+        return readProfiles().indexOfFirst { it.mac.equals(mac, ignoreCase = true) }
+    }
+
+    /**
      * 新增一套门禁，返回新增后的下标。
      */
     fun add(profile: LockProfile): Int {
