@@ -53,6 +53,10 @@
             android:exported="false"
             android:theme="@style/Theme.SafeBaiyun" />
 
+        <activity
+            android:name=".WatchActivity"
+            android:exported="false"
+            android:theme="@style/Theme.SafeBaiyun" />
 
         <activity
             android:name=".ShortcutActivity"

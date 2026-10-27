@@ -30,10 +30,10 @@ jobs:
         run: /tmp/gradle-8.4/bin/gradle assembleDebug --stacktrace
 
       - name: Rename APK
-        run: cp app/build/outputs/apk/debug/app-debug.apk SafeBaiyun-multi-nfc-1.3.apk
+        run: cp app/build/outputs/apk/debug/app-debug.apk SafeBaiyun-multi-nfc-watch-1.4.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: SafeBaiyun-multi-nfc-1.3
-          path: SafeBaiyun-multi-nfc-1.3.apk
+          name: SafeBaiyun-multi-nfc-watch-1.4
+          path: SafeBaiyun-multi-nfc-watch-1.4.apk

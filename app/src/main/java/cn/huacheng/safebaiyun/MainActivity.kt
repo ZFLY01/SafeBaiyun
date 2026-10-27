@@ -28,6 +28,12 @@ import cn.huacheng.safebaiyun.util.showToast
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 手表等小屏设备（如小米手表5圆屏）自动进入手表界面
+        if (resources.configuration.screenWidthDp in 1..260) {
+            startActivity(Intent(this, WatchActivity::class.java))
+            finish()
+            return
+        }
         setContent {
             SafeBaiyunTheme {
                 val navController = rememberNavController()
