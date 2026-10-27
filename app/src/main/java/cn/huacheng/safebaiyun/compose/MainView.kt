@@ -60,11 +60,14 @@ fun MainView(navController: NavHostController) {
     }
 
     SideEffect {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            hasPermission.value =
-                context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        hasPermission.value = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
+                PackageManager.PERMISSION_GRANTED &&
+                context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) ==
+                PackageManager.PERMISSION_GRANTED
         } else {
-            hasPermission.value = true
+            context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+                PackageManager.PERMISSION_GRANTED
         }
     }
 
@@ -169,15 +172,34 @@ private fun UnlockView() {
 
 @Composable
 private fun PermissionView(hasPermission: MutableState<Boolean>) {
+    val context = LocalContext.current
     val requestPermissionLauncher =
-        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestPermission()) { isGranted ->
-            hasPermission.value = isGranted
+        rememberLauncherForActivityResult(contract = ActivityResultContracts.RequestMultiplePermissions()) {
+            hasPermission.value = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) ==
+                    PackageManager.PERMISSION_GRANTED &&
+                    context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) ==
+                    PackageManager.PERMISSION_GRANTED
+            } else {
+                context.checkSelfPermission(Manifest.permission.ACCESS_FINE_LOCATION) ==
+                    PackageManager.PERMISSION_GRANTED
+            }
         }
 
     Button(modifier = Modifier.size(144.dp, 56.dp),
         onClick = {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                requestPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                requestPermissionLauncher.launch(
+                    arrayOf(
+                        Manifest.permission.BLUETOOTH_CONNECT,
+                        Manifest.permission.BLUETOOTH_SCAN,
+                        Manifest.permission.ACCESS_FINE_LOCATION
+                    )
+                )
+            } else {
+                requestPermissionLauncher.launch(
+                    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION)
+                )
             }
 
         }) {
