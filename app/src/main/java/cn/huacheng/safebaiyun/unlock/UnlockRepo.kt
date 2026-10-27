@@ -301,7 +301,7 @@ object UnlockRepo {
     /**
      * 扫描所需权限：Android 12+ 用 BLUETOOTH_SCAN；低版本用定位权限。
      */
-    private fun hasScanPermission() {
+    private fun hasScanPermission(): Boolean {
         val context = ContextHolder.get()
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             context.checkSelfPermission(Manifest.permission.BLUETOOTH_SCAN) ==
